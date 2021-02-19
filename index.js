@@ -60,6 +60,22 @@ app.get('/InvestorProfileDetails', function (req, res) {
 
 })
 
+//HomeDetails QueryGET
+app.get('/HomePageDetails', function (req, res) {
+  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID AND Owner.Owner_ID= ? ", [req.query.Owner_ID], function (error, rows, fields) {
+    if (error) {
+      console.log('Error in the query'+JSON.stringify(error));
+    }
+    else {
+      console.log(JSON.stringify(rows))
+      res.status(200).json({
+        data: rows[0],
+      });
+    }
+  });
+
+})
+
 //LandInforamtion according to OwnerID + Investor Name in it.
 app.get('/LandsInformation', function (req, res) {
   con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID= ? ",[req.query.Owner_ID], function (error, rows, fields) {
@@ -84,7 +100,7 @@ app.get('/Landshistory', function (req, res) {
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
       });
     }
   });
@@ -93,7 +109,7 @@ app.get('/Landshistory', function (req, res) {
 })
 //landsImage preview for a land
 app.get('/landsimages', function (req, res) {
-  con.query("Select landsimages.LandsImageAerial From landsimages Where Lands_ID=? ;" [req.params.Lands_ID], function (error, rows, fields) {
+  con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) FROM  landsimages Where Lands_ID=? ;" [req.params.Lands_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
@@ -116,7 +132,7 @@ app.get('/Rating', function (req, res) {
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
       });
     }
   });
@@ -178,7 +194,6 @@ app.post('/InvestorLogin', function (req, res) {
 
 app.post('/InvestorInsert', function (req, res) {
   var postData = req.body;
-
   con.query("INSERT INTO Investor SET ? ", postData, function (error, results, fields) {
     if (error) throw error;
     return res.send({ error: false, postData: results, message: 'New user has been created successfully.' });
@@ -189,7 +204,6 @@ app.post('/InvestorInsert', function (req, res) {
 
 app.post('/OwnerInsert', function (req, res) {
   var postData = req.body;
-
   con.query("INSERT INTO Owner SET ? ", postData, function (error, results, fields) {
     if (error) throw error;
     return res.send({ error: false, postData: results, message: 'New user has been created successfully.' });

@@ -2,7 +2,9 @@ var express = require('express');
 const con = require('./utils/dbconnect');
 var bodyParser = require('body-parser');
 
+//Load and intialize MesageBirdSdk
 
+var messagebird = require('messagebird')('<YOUR_ACCESS_KEY>');;
 
 //Create Restful
 var app = express();
@@ -10,6 +12,14 @@ var publicDir = (__dirname + '/public/')
 app.use(express.static(publicDir));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+
+
+
+
+
+
+
 
 app.post('/LandsImages',function(req,res){
 con.query("SELECT * FROM landsimages WHERE Lands_ID=?",[req.body.Lands_ID],function(error,results){
@@ -21,14 +31,45 @@ con.query("SELECT * FROM landsimages WHERE Lands_ID=?",[req.body.Lands_ID],funct
 
 
 app.get('/Investor', function (req, res) {
-  con.query("SELECT Investor_Name, Investor_Pass FROM Investor where Investor_Name = 'Teddy Wimbridge'", function (error, rows, fields) {
+  con.query("SELECT Investor_Name, Investor_Email , Investor_Phonenum FROM Investor where Investor_ID = ?", [req.query.Investor_ID],function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
+      });
+    }
+  });
+
+})
+
+app.get('/InvestorProfileDetails', function (req, res) {
+  con.query("Select Investor.Investor_Name, Investor.Investor_Email , Investor.Investor_Phonenum, landinformation.Land_Price,landinformation.Land_Size ,reviewlands.Rating FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID AND Investor.Investor_ID= ? ", [req.query.Investor_ID],function (error, rows, fields) {
+    if (error) {
+      console.log('Error in the query');
+    }
+    else {
+      console.log(JSON.stringify(rows))
+      res.status(200).json({
+        data: rows[0],
+      });
+    }
+  });
+
+})
+
+//HomeDetails QueryGET
+app.get('/HomePageDetails', function (req, res) {
+  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID AND Owner.Owner_ID= ? ", [req.query.Owner_ID], function (error, rows, fields) {
+    if (error) {
+      console.log('Error in the query'+JSON.stringify(error));
+    }
+    else {
+      console.log(JSON.stringify(rows))
+      res.status(200).json({
+        data: rows[0],
       });
     }
   });
@@ -37,18 +78,17 @@ app.get('/Investor', function (req, res) {
 
 //LandInforamtion according to OwnerID + Investor Name in it.
 app.get('/LandsInformation', function (req, res) {
-  con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID='3' ", function (error, rows, fields) {
+  con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID= ? ",[req.query.Owner_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
       });
     }
   });
-
 
 })
 //LandHistory for information details about RentedOld Lands
@@ -60,7 +100,7 @@ app.get('/Landshistory', function (req, res) {
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
       });
     }
   });
@@ -69,14 +109,14 @@ app.get('/Landshistory', function (req, res) {
 })
 //landsImage preview for a land
 app.get('/landsimages', function (req, res) {
-  con.query("Select landsimages.LandsImageAerial From landsimages Where Lands_ID=102 ;", function (error, rows, fields) {
+  con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) FROM  landsimages Where Lands_ID=? ;" [req.params.Lands_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
       });
     }
   });
@@ -92,7 +132,7 @@ app.get('/Rating', function (req, res) {
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows,
+        data: rows[0],
       });
     }
   });
@@ -154,7 +194,6 @@ app.post('/InvestorLogin', function (req, res) {
 
 app.post('/InvestorInsert', function (req, res) {
   var postData = req.body;
-
   con.query("INSERT INTO Investor SET ? ", postData, function (error, results, fields) {
     if (error) throw error;
     return res.send({ error: false, postData: results, message: 'New user has been created successfully.' });
@@ -165,7 +204,6 @@ app.post('/InvestorInsert', function (req, res) {
 
 app.post('/OwnerInsert', function (req, res) {
   var postData = req.body;
-
   con.query("INSERT INTO Owner SET ? ", postData, function (error, results, fields) {
     if (error) throw error;
     return res.send({ error: false, postData: results, message: 'New user has been created successfully.' });

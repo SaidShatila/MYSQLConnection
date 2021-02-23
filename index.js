@@ -62,14 +62,16 @@ app.get('/InvestorProfileDetails', function (req, res) {
 
 //HomeDetails QueryGET
 app.get('/HomePageDetails', function (req, res) {
-  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID AND Owner.Owner_ID= ? ", [req.query.Owner_ID], function (error, rows, fields) {
+  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID  ", function (error, rows, fields) {
     if (error) {
       console.log('Error in the query'+JSON.stringify(error));
     }
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows[0],
+        data: rows[
+          0,1,2,3,4
+        ],
       });
     }
   });

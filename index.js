@@ -21,17 +21,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 
-app.post('/LandsImages',function(req,res){
-con.query("SELECT * FROM landsimages WHERE Lands_ID=?",[req.body.Lands_ID],function(error,results){
-  if(error) throw error;
-  res.send(results);  
-});
+app.post('/LandsImages', function (req, res) {
+  con.query("SELECT * FROM landsimages WHERE Lands_ID=?", [req.body.Lands_ID], function (error, results) {
+    if (error) throw error;
+    res.send(results);
+  });
 
 });
 
 
 app.get('/Investor', function (req, res) {
-  con.query("SELECT Investor_Name, Investor_Email , Investor_Phonenum FROM Investor where Investor_ID = ?", [req.query.Investor_ID],function (error, rows, fields) {
+  con.query("SELECT Investor_Name, Investor_Email , Investor_Phonenum FROM Investor where Investor_ID = ?", [req.query.Investor_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
@@ -46,7 +46,7 @@ app.get('/Investor', function (req, res) {
 })
 
 app.get('/InvestorProfileDetails', function (req, res) {
-  con.query("Select Investor.Investor_Name, Investor.Investor_Email , Investor.Investor_Phonenum, landinformation.Land_Price,landinformation.Land_Size ,reviewlands.Rating FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID AND Investor.Investor_ID= ? ", [req.query.Investor_ID],function (error, rows, fields) {
+  con.query("Select Investor.Investor_Name, Investor.Investor_Email , Investor.Investor_Phonenum, landinformation.Land_Price,landinformation.Land_Size ,reviewlands.Rating FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID AND Investor.Investor_ID= ? ", [req.query.Investor_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
@@ -62,37 +62,59 @@ app.get('/InvestorProfileDetails', function (req, res) {
 
 //HomeDetails QueryGET
 app.get('/HomePageDetails', function (req, res) {
-  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID  ", function (error, rows, fields) {
+  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID WHERE reviewlands.Rating =5 ", function (error, rows, fields) {
     if (error) {
-      console.log('Error in the query'+JSON.stringify(error));
+      console.log('Error in the query' + JSON.stringify(error));
     }
     else {
       console.log(JSON.stringify(rows))
       res.status(200).json({
-        data: rows[
-          0,1,2,3,4
-        ],
+        data: rows
       });
     }
   });
 
 })
-
+//onResult is a callback that will be invoked after the query is executed in the database
+function fetchImagesByLandId(landId, onResult) {
+  con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) as imageAerial, " +
+    "CONVERT(landsimages.LandsImageFront USING utf8) as imageFront," +
+    "CONVERT(landsimages.LandsImageBack USING utf8) as imageBack," +
+    "CONVERT(landsimages.LandsImageRight USING utf8) as imageRight," +
+    "CONVERT(landsimages.LandsImageLeft USING utf8) as imageLeft  " +
+    " FROM  landsimages WHERE Lands_ID=? ;", [landId], function (error, rows) {
+      onResult(error, rows)
+    });
+};
 //LandInforamtion according to OwnerID + Investor Name in it.
 app.get('/LandsInformation', function (req, res) {
-  con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID= ? ",[req.query.Owner_ID], function (error, rows, fields) {
+  con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID= ? ", [req.query.Owner_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
     else {
-      console.log(JSON.stringify(rows))
-      res.status(200).json({
-        data: rows[0],
+      var row = rows[0]
+      fetchImagesByLandId(row.Lands_ID, function (error, imagesResult) {
+        if (error) {
+          console.log("Error: " + JSON.stringify(error))
+        } else {
+          var mappedImages = []
+          mappedImages.push(imagesResult[0].imageAerial)
+          mappedImages.push(imagesResult[0].imageFront)
+          mappedImages.push(imagesResult[0].imageBack)
+          mappedImages.push(imagesResult[0].imageRight)
+          mappedImages.push(imagesResult[0].imageLeft)
+          row.imagesResult = mappedImages
+          console.log(JSON.stringify(rows))
+          res.status(200).json({
+            data: row,
+          });
+        }
       });
     }
   });
-
 })
+
 //LandHistory for information details about RentedOld Lands
 app.get('/Landshistory', function (req, res) {
   con.query("Select Landshistory.*  From Landshistory  JOIN Lands  on landshistory.Lands_ID=Lands.Lands_ID and  Lands.Owner_ID=6;", function (error, rows, fields) {
@@ -111,19 +133,22 @@ app.get('/Landshistory', function (req, res) {
 })
 //landsImage preview for a land
 app.get('/landsimages', function (req, res) {
-  con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) FROM  landsimages Where Lands_ID=? ;" [req.params.Lands_ID], function (error, rows, fields) {
-    if (error) {
-      console.log('Error in the query');
-    }
-    else {
-      console.log(JSON.stringify(rows))
-      res.status(200).json({
-        data: rows[0],
-      });
-    }
-  });
-
-  
+  con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) as imageAerial, " +
+    "CONVERT(landsimages.LandsImageFront USING utf8) as imageFront," +
+    "CONVERT(landsimages.LandsImageBack USING utf8) as imageBack," +
+    "CONVERT(landsimages.LandsImageRight USING utf8) as imageRight," +
+    "CONVERT(landsimages.LandsImageLeft USING utf8) as imageLeft  " +
+    " FROM  landsimages WHERE Lands_ID=? ;", [req.query.Lands_ID], function (error, rows) {
+      if (error) {
+        console.log('Error in the query');
+      }
+      else {
+        console.log(JSON.stringify(rows))
+        res.status(200).json({
+          data: rows
+        });
+      }
+    });
 })
 //Rating for lands from investor side
 app.get('/Rating', function (req, res) {
@@ -139,7 +164,7 @@ app.get('/Rating', function (req, res) {
     }
   });
 
-  
+
 })
 
 //Investor by name
@@ -181,9 +206,9 @@ app.post('/InvestorLogin', function (req, res) {
   var data = {
     "Data": ""
   };
-  console.log("InvestorEmail: " + Investoremail + " \n InvestorPass: "+ Investorpass);
+  console.log("InvestorEmail: " + Investoremail + " \n InvestorPass: " + Investorpass);
   con.query("SELECT * from Investor WHERE Investor_Email=? and Investor_Pass=? LIMIT 1", [Investoremail, Investorpass], function (err, rows, fields) {
-    console.log("rowslength: "+ rows.length);
+    console.log("rowslength: " + rows.length);
     if (rows.length != 0) {
       data["Data"] = "Successfully logged in..";
       res.json(data);
@@ -199,7 +224,7 @@ app.post('/InvestorInsert', function (req, res) {
   con.query("INSERT INTO Investor SET ? ", postData, function (error, results, fields) {
     if (error) throw error;
     return res.send({ error: false, postData: results, message: 'New user has been created successfully.' });
-    
+
   });
 });
 
@@ -220,7 +245,7 @@ app.post('/OwnerLogin', function (req, res) {
     "Data": ""
   };
   con.query("SELECT * from Owner WHERE Owner_Email=? and Owner_Pass=? LIMIT 1", [Owneremail, Ownerpass], function (err, rows, fields) {
-    if(err){
+    if (err) {
       throw err;
     }
     if (rows.length != 0) {
@@ -238,7 +263,7 @@ app.post('/Investorlog', (req, res) => {
   var Investore = req.body.Investor_Email;
   var Investorp = req.body.Investor_Pass;
   var responseObject = {
-    "text" : "Login Successful"
+    "text": "Login Successful"
   }
   console.log("User name = " + Investore + ", password is " + Investorp);
   res.send(responseObject);

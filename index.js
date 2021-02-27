@@ -1,6 +1,7 @@
 var express = require('express');
 const con = require('./utils/dbconnect');
 var bodyParser = require('body-parser');
+const { json } = require('body-parser');
 
 //Load and intialize MesageBirdSdk
 
@@ -60,35 +61,70 @@ app.get('/InvestorProfileDetails', function (req, res) {
 
 })
 
-//HomeDetails QueryGET
-app.get('/HomePageDetails', function (req, res) {
-  con.query("Select Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating,CONVERT(landsimages.LandsImageAerial USING utf8) as landsImageAerial FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID  JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID WHERE reviewlands.Rating =5 ", function (error, rows, fields) {
-    if (error) {
-      console.log('Error in the query' + JSON.stringify(error));
-    }
-    else {
-      console.log(JSON.stringify(rows))
-      res.status(200).json({
-        data: rows
-      });
-    }
+function asynqQuery(con, query, params) {
+  return new Promise((resolve, reject) => {
+    console.log("Query Started")
+    con.query(query, params, (err, result) => {
+      if (err)
+        return reject(err);
+      console.log("Query Finished")
+      resolve(result);
+    });
   });
 
-})
+}
+
 //onResult is a callback that will be invoked after the query is executed in the database
-function fetchImagesByLandId(landId, onResult) {
-  con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) as imageAerial, " +
-    "CONVERT(landsimages.LandsImageFront USING utf8) as imageFront," +
-    "CONVERT(landsimages.LandsImageBack USING utf8) as imageBack," +
-    "CONVERT(landsimages.LandsImageRight USING utf8) as imageRight," +
-    "CONVERT(landsimages.LandsImageLeft USING utf8) as imageLeft  " +
-    " FROM  landsimages WHERE Lands_ID=? ;", [landId], function (error, rows) {
-      onResult(error, rows)
-    });
+function fetchImagesByLandId(landId) {
+  console.log("landId:" + landId)
+  return new Promise((resolve, reject) => {
+    con.query("SELECT CONVERT(landsimages.LandsImageAerial USING utf8) as imageAerial, " +
+      "CONVERT(landsimages.LandsImageFront USING utf8) as imageFront," +
+      "CONVERT(landsimages.LandsImageBack USING utf8) as imageBack," +
+      "CONVERT(landsimages.LandsImageRight USING utf8) as imageRight," +
+      "CONVERT(landsimages.LandsImageLeft USING utf8) as imageLeft  " +
+      " FROM  landsimages WHERE landsimages.Lands_ID=? ;", [landId], function (error, rows) {
+        resolve(rows);
+      });
+  });
 };
+//HomeDetails QueryGET
+app.get('/HomePageDetails', (re, res) => {
+  con.query("Select lands.Lands_ID,Owner.Owner_Name , landinformation.Land_Price,landinformation.Land_Size, landlocation.Address ,reviewlands.Rating FROM landinformation"
+    + " JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner on Lands.Owner_ID=Owner.Owner_ID"
+    + " JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID " +
+    " JOIN landlocation on landlocation.Lands_ID=Lands.Lands_ID"
+    + " JOIN landsimages on landsimages.Lands_ID=Lands.Lands_ID " +
+    "WHERE reviewlands.Rating =5 LIMIT 5", async function (error, rows) {
+      if (error) {
+        console.log('Error in the query' + JSON.stringify(error));
+      }
+      else {
+        var results = [];
+        for (i in rows) {
+          var imagesResult = await fetchImagesByLandId(rows[i].Lands_ID)
+          console.log(JSON.stringify(imagesResult));
+          var mappedImages = []
+          console.log(JSON.stringify(mappedImages));
+          mappedImages.push(imagesResult[0].imageAerial)
+          mappedImages.push(imagesResult[0].imageFront)
+          mappedImages.push(imagesResult[0].imageBack)
+          mappedImages.push(imagesResult[0].imageRight)
+          mappedImages.push(imagesResult[0].imageLeft)
+          rows[i].imagesResult = mappedImages
+          results.push(rows[i]);
+        }
+        res.status(200).json({
+          data: results,
+        });
+      }
+    });
+
+})
+
 //LandInforamtion according to OwnerID + Investor Name in it.
 app.get('/LandsInformation', function (req, res) {
-  con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID= ? ", [req.query.Owner_ID], function (error, rows, fields) {
+  con.query("Select landinformation.*,Owner.Owner_Name,Investor.Investor_Name,Products.Products_Name,reviewlands.Rating FROM landinformation JOIN Lands  on landinformation.Lands_ID=Lands.Lands_ID  JOIN Owner  on Lands.Owner_ID= Owner.Owner_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID  JOIN Products on Investor.Investor_ID=Products.Investor_ID  JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID and Lands.Owner_ID= 3 ", [req.query.Owner_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
@@ -272,5 +308,5 @@ app.post('/Investorlog', (req, res) => {
 
 //start server
 app.listen(3000, () => {
-  console.log('listening on port 3000');
+  console.log('listening on port 3080');
 })

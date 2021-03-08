@@ -298,15 +298,17 @@ app.post('/OwnerLogin', function (req, res) {
 app.post('/Investorlog', (req, res) => {
   var Investore = req.body.Investor_Email;
   var Investorp = req.body.Investor_Pass;
-  var responseObject = {
-    "text": "Login Successful"
-  }
-  console.log("User name = " + Investore + ", password is " + Investorp);
-  res.send(responseObject);
+
+  con.query("Select Investor.Investor_ID,Investor.Investor_Name,Investor.Investor_Phonenum from Investor", function (err, rows) {
+    var responseObject = rows[0]
+    console.log("User name = " + Investore + ", password is " + Investorp);
+    res.send(responseObject);
+  });
+
 });
 
 
 //start server
 app.listen(3000, () => {
-  console.log('listening on port 3080');
+  console.log('listening on port 3000');
 })

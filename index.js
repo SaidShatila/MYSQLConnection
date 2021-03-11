@@ -47,7 +47,7 @@ app.get('/Investor', function (req, res) {
 })
 
 app.get('/InvestorProfileDetails', function (req, res) {
-  con.query("Select Investor.Investor_Name, Investor.Investor_Email , Investor.Investor_Phonenum, landinformation.Land_Price,landinformation.Land_Size ,reviewlands.Rating FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID AND Investor.Investor_ID= ? ", [req.query.Investor_ID], function (error, rows, fields) {
+  con.query("Select Investor.Investor_ID, Investor.Investor_Name, Investor.Investor_Email , Investor.Investor_Phonenum, landinformation.Land_Price,landinformation.Land_Size ,reviewlands.Rating FROM landinformation JOIN Lands on landinformation.Lands_ID=Lands.Lands_ID  JOIN Investor on Lands.Investor_ID=Investor.Investor_ID JOIN reviewlands on reviewlands.Lands_ID=Lands.Lands_ID AND Investor.Investor_ID= ? ", [req.query.Investor_ID], function (error, rows, fields) {
     if (error) {
       console.log('Error in the query');
     }
@@ -298,13 +298,17 @@ app.post('/OwnerLogin', function (req, res) {
 app.post('/Investorlog', (req, res) => {
   var Investore = req.body.Investor_Email;
   var Investorp = req.body.Investor_Pass;
-
-  con.query("Select Investor.Investor_ID,Investor.Investor_Name,Investor.Investor_Phonenum from Investor", function (err, rows) {
-    var responseObject = rows[0]
-    console.log("User name = " + Investore + ", password is " + Investorp);
-    res.send(responseObject);
-  });
-
+  if (Investore && Investorp) {
+    con.query("Select Investor.Investor_ID,Investor.Investor_Name,Investor.Investor_Phonenum from Investor" +
+      " where Investor.Investor_Email=? and Investor_Pass=? LIMIT 1 ", [Investore, Investorp], function (err, rows) {
+        var responseObject = rows[0]
+        console.log("User name = " + Investore + ", password is " + Investorp);
+        res.send(responseObject);
+      });
+  }
+  else {
+    res.send("Please enter username and password");
+  }
 });
 
 

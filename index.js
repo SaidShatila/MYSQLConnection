@@ -2,6 +2,7 @@ var express = require('express');
 const con = require('./utils/dbconnect');
 var bodyParser = require('body-parser');
 const { json } = require('body-parser');
+var PORT = process.env.PORT || 3000;
 
 //Load and intialize MesageBirdSdk
 
@@ -13,7 +14,6 @@ var publicDir = (__dirname + '/public/')
 app.use(express.static(publicDir));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-
 
 
 
@@ -313,6 +313,6 @@ app.post('/Investorlog', (req, res) => {
 
 
 //start server
-app.listen(3000, () => {
-  console.log('listening on port 3000');
+app.listen(PORT, () => {
+  console.log('listening on port ' + PORT);
 })

@@ -294,7 +294,7 @@ app.post('/OwnerLogin', function (req, res) {
   });
 });
 
-
+//todo OAuth 2.0;
 app.post('/Investorlog', (req, res) => {
   var Investore = req.body.Investor_Email;
   var Investorp = req.body.Investor_Pass;

@@ -2,7 +2,7 @@ var express = require('express');
 const con = require('./utils/dbconnect');
 var bodyParser = require('body-parser');
 const { json } = require('body-parser');
-var PORT = process.env.PORT || 3306;
+var PORT = process.env.PORT || 3000;
 
 //Load and intialize MesageBirdSdk
 
